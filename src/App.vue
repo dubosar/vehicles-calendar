@@ -10,7 +10,6 @@ export default {
 components: { Calendar }
 
 }
-
 </script>
 
 <style lang="scss">
