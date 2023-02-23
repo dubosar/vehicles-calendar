@@ -5,24 +5,29 @@
       <div class="cars">
         <div>name</div>
         <div>name</div>
-        <div class="car" v-for="car in cars" :key="car.id">{{ car.model }}</div>
+        <div class="car d-flex" v-for="car in cars" :key="car.id">
+          {{ car.model }}
+        </div>
       </div>
 
       <div class="slider" @mousedown.left="mouseDownListener"></div>
 
-      <div class="calendar scrollable-layout">
+      <div class="calendar scrollable-layout" ref="calendar">
         <div>{{ currentDate }}</div>
         <div class="hours">
-          <div v-for="hour in hours" :key="hour" class="hour layout-segment text-center">
-            <div>{{ hour }}</div>
-            <div style="height: 60px" class="line scrollable-layout" v-for="car in cars" :key="car.id+'i'">xx</div>
+          <div v-for="hour in hours" :key="hour" class="hour layout-segment">
+            <div class="hour">{{ hour }}</div>
+            <CalendarCell
+                v-for="car in cars"
+                :key="`${car.id}_${hour}`"
+                :carId="car.id"
+                :hour="hour"
+                :dayDuration="hours.length"
+                :gridSize="gridSize"
+                :events="thisCarEvents(car.id, hour)"
+            />
           </div>
         </div>
-<!--        <div class="content">-->
-<!--          <div class="line scrollable-layout" v-for="car in cars" :key="car.id+'i'">-->
-<!--            <div class="cell layout-segment d-flex align-center justify-center" v-for="hour in hours" :key="hour+'k'"></div>-->
-<!--          </div>-->
-<!--        </div>-->
       </div>
 
     </div>
@@ -33,27 +38,35 @@
 <script>
 
 // import vehiclesService from '@/services/vehiclesService'
-import { format } from 'date-fns'
+import {format, parseISO, addMinutes, isWithinInterval, getHours} from 'date-fns'
+import CalendarCell from "@/components/CalendarCell.vue";
 
 export default {
   name: 'VehiclesCalendar',
-  components: {},
+  components: { CalendarCell },
   data: () => ({
     date: new Date(),
-    hours: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+    hours: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    // hours: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
     cars: [
-      { id: 1, model: 'BMW', make: '328' }
+      { id: 11, model: 'BMW', make: '328' },
+      // { id: 12, model: 'VW', make: 'Polo' },
+      // { id: 13, model: 'Mini', make: 'Countryman' },
+      // { id: 14, model: 'Mini', make: 'Cooper' },
+      // { id: 15, model: 'Audi', make: 'A3' },
     ],
     events: [
-      { id: 1, start: '1:00', duration: 90 },
-      { id: 2, start: '2:15', duration: 90 },
-      { id: 3, start: '3:30', duration: 90 },
-      { id: 4, start: '4:45', duration: 90 },
+      { id: 1, carId: 11, start: '2023-02-23 01:00:00', duration: 300 },
+      // { id: 2, carId: 12, start: '2023-02-23 02:22:00', duration: 90 },
+      // { id: 3, carId: 15, start: '2023-02-23 03:00:00', duration: 540 },
+      // { id: 4, carId: 11, start: '2023-02-23 04:45:00', duration: 90 },
     ],
     spacerSize: 180,
+    gridSize: 0,
     moving: false,
   }),
   mounted () {
+    this.gridSize = this.$refs.calendar.scrollWidth
     // this.fetch()
     //     .then()
     //     .catch((error) => console.log(error))
@@ -62,7 +75,7 @@ export default {
     //     })
   },
   computed: {
-    gridTemplateColumn () {
+    gridTemplateColumn() {
       return `grid-template-columns: ${this.spacerSize}px 5px 1fr`
     },
     currentDate() {
@@ -84,10 +97,36 @@ export default {
     mouseMove (e) {
       if (!this.moving) return
       this.spacerSize = e.layerX
+      this.gridSize = this.$refs.calendar.scrollWidth
     },
     mouseUpListener () {
       if (!this.moving) return
       this.moving = false
+    },
+    // thisCarEvents(carId, hour) {
+    //   const start = addMinutes(parseISO(this.currentDate), (hour * 60))
+    //   const end = addMinutes(parseISO(this.currentDate), (hour * 60 + 59))
+    //   return this.events.filter((event) => {
+    //     return event.carId === carId && isWithinInterval(parseISO(event.start), { start, end })
+    //   }) || []
+    // },
+    thisCarEvents(carId, hour) {
+      const start = addMinutes(parseISO(this.currentDate), (hour * 60))
+      const end = addMinutes(parseISO(this.currentDate), (hour * 60 + 59))
+      const events = this.events.filter((event) => event.carId === carId)
+      return events.filter((event) => {
+        const eventStartHour = getHours(parseISO(event.start))
+        const eventEndHour = getHours(addMinutes(parseISO(event.start), event.duration))
+
+        if (!this.hours.includes(eventStartHour) && !this.hours.includes(eventEndHour)) return
+
+        const eventEndTime = addMinutes(parseISO(event.start), event.duration)
+        const isWithinStart = isWithinInterval(parseISO(event.start), { start, end })
+        const isWithinEnd = isWithinInterval(eventEndTime, { start, end })
+
+        if (this.hours.includes(eventStartHour)) return isWithinStart
+        if (this.hours.includes(eventEndHour)) return isWithinEnd
+      }) || []
     },
   },
 }
@@ -110,6 +149,7 @@ export default {
 
 #grid {
   width: 100%;
+  height: 100vh;
   display: grid;
   grid-template-areas: "cars slider calendar";
 }
@@ -117,10 +157,17 @@ export default {
 .header {
   background: #ebebeb;
 }
-
 .cars {
   grid-area: cars;
+  .car{
+    height: 60px;
+    border-bottom: 1px solid #ccc;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+  }
 }
+
 .slider {
   grid-area: slider;
   width: 5px;
@@ -137,14 +184,10 @@ export default {
   flex-direction: column;
   .hours {
     display: flex;
-    height: calc(100vh - 130px);
-  }
-}
-
-.cars {
-  .car{
-    height: 60px;
-    border-bottom: 1px solid #ccc;
+    height: 100%;
+    .hour {
+      //border-bottom: 1px solid #ccc;
+    }
   }
 }
 
