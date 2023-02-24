@@ -2,13 +2,7 @@
   <div id="layout">
     <div id="filters">Filters</div>
     <div id="grid" :style="gridTemplateColumn">
-      <div class="cars">
-        <div>name</div>
-        <div>name</div>
-        <div class="car d-flex" v-for="car in cars" :key="car.id">
-          {{ car.model }}
-        </div>
-      </div>
+      <VehiclesList class="vehicles" :vehicles="cars" />
 
       <div class="slider" @mousedown.left="mouseDownListener"></div>
 
@@ -16,17 +10,19 @@
         <div>{{ currentDate }}</div>
         <div class="hours">
           <div v-for="hour in hours" :key="hour" class="hour layout-segment">
-            <div class="hour">{{ hour }}</div>
-            <CalendarCell
-                v-for="car in cars"
-                :key="`${car.id}_${hour}`"
-                :carId="car.id"
-                :hour="hour"
-                :dayDuration="hours.length"
-                :gridSize="gridSize"
-                :events="thisCarEvents(car.id, hour)"
-            />
+            <div class="hour">
+              {{ hour }}
+              <div class="line"></div>
+            </div>
           </div>
+        </div>
+        <div class="event-lines">
+          <VehicleEventsTimeLine
+              v-for="car in cars"
+              :key="car.id+'i'"
+              :events="thisCarEvents(car.id)"
+              :oneMinuteSize="oneMinuteSize"
+          />
         </div>
       </div>
 
@@ -37,36 +33,40 @@
 
 <script>
 
+import {format} from 'date-fns'
 // import vehiclesService from '@/services/vehiclesService'
-import {format, parseISO, addMinutes, isWithinInterval, getHours} from 'date-fns'
-import CalendarCell from "@/components/CalendarCell.vue";
+// import CalendarCell from "@/components/CalendarCell";
+import VehiclesList from "@/components/VehiclesList";
+import VehicleEventsTimeLine from "@/components/VehicleEventsTimeLine";
 
 export default {
   name: 'VehiclesCalendar',
-  components: { CalendarCell },
+  components: { VehiclesList, VehicleEventsTimeLine },
   data: () => ({
     date: new Date(),
-    hours: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
-    // hours: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
+    // hours: [3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    hours: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
     cars: [
       { id: 11, model: 'BMW', make: '328' },
-      // { id: 12, model: 'VW', make: 'Polo' },
-      // { id: 13, model: 'Mini', make: 'Countryman' },
-      // { id: 14, model: 'Mini', make: 'Cooper' },
-      // { id: 15, model: 'Audi', make: 'A3' },
+      { id: 12, model: 'VW', make: 'Polo' },
+      { id: 13, model: 'Mini', make: 'Countryman' },
+      { id: 14, model: 'Mini', make: 'Cooper' },
+      { id: 15, model: 'Audi', make: 'A3' },
     ],
     events: [
-      { id: 1, carId: 11, start: '2023-02-23 01:00:00', duration: 300 },
-      // { id: 2, carId: 12, start: '2023-02-23 02:22:00', duration: 90 },
-      // { id: 3, carId: 15, start: '2023-02-23 03:00:00', duration: 540 },
-      // { id: 4, carId: 11, start: '2023-02-23 04:45:00', duration: 90 },
+      { id: 1, carId: 11, start: '2023-02-24 01:00:00', duration: 120 },
+      { id: 2, carId: 12, start: '2023-02-24 02:22:00', duration: 90 },
+      { id: 3, carId: 15, start: '2023-02-24 03:00:00', duration: 540 },
+      { id: 4, carId: 11, start: '2023-02-24 04:45:00', duration: 90 },
     ],
     spacerSize: 180,
     gridSize: 0,
+    defaultGridSize: 0,
     moving: false,
   }),
   mounted () {
     this.gridSize = this.$refs.calendar.scrollWidth
+    this.defaultGridSize = this.$refs.calendar.scrollWidth
     // this.fetch()
     //     .then()
     //     .catch((error) => console.log(error))
@@ -80,6 +80,10 @@ export default {
     },
     currentDate() {
       return format(this.date, "yyyy-MM-dd")
+    },
+    oneMinuteSize() {
+      // console.log('min ', this.gridSize / this.hours.length / 60)
+      return this.gridSize / this.hours.length / 60
     }
   },
   methods: {
@@ -106,27 +110,25 @@ export default {
     // thisCarEvents(carId, hour) {
     //   const start = addMinutes(parseISO(this.currentDate), (hour * 60))
     //   const end = addMinutes(parseISO(this.currentDate), (hour * 60 + 59))
-    //   return this.events.filter((event) => {
-    //     return event.carId === carId && isWithinInterval(parseISO(event.start), { start, end })
+    //   const events = this.events.filter((event) => event.carId === carId)
+    //   return events.filter((event) => {
+    //     const eventStartHour = getHours(parseISO(event.start))
+    //     const eventEndHour = getHours(addMinutes(parseISO(event.start), event.duration))
+    //
+    //     if (!this.hours.includes(eventStartHour) && !this.hours.includes(eventEndHour)) return
+    //
+    //     const eventEndTime = addMinutes(parseISO(event.start), event.duration)
+    //     const isWithinStart = isWithinInterval(parseISO(event.start), { start, end })
+    //     const isWithinEnd = isWithinInterval(eventEndTime, { start, end })
+    //
+    //     if (this.hours.includes(eventStartHour)) return isWithinStart
+    //     if (this.hours.includes(eventEndHour)) return isWithinEnd
     //   }) || []
     // },
-    thisCarEvents(carId, hour) {
-      const start = addMinutes(parseISO(this.currentDate), (hour * 60))
-      const end = addMinutes(parseISO(this.currentDate), (hour * 60 + 59))
-      const events = this.events.filter((event) => event.carId === carId)
-      return events.filter((event) => {
-        const eventStartHour = getHours(parseISO(event.start))
-        const eventEndHour = getHours(addMinutes(parseISO(event.start), event.duration))
 
-        if (!this.hours.includes(eventStartHour) && !this.hours.includes(eventEndHour)) return
 
-        const eventEndTime = addMinutes(parseISO(event.start), event.duration)
-        const isWithinStart = isWithinInterval(parseISO(event.start), { start, end })
-        const isWithinEnd = isWithinInterval(eventEndTime, { start, end })
-
-        if (this.hours.includes(eventStartHour)) return isWithinStart
-        if (this.hours.includes(eventEndHour)) return isWithinEnd
-      }) || []
+    thisCarEvents(carId) {
+      return this.events.filter((event) => event.carId === carId) || []
     },
   },
 }
@@ -149,24 +151,27 @@ export default {
 
 #grid {
   width: 100%;
-  height: 100vh;
+  height: 90vh;
   display: grid;
-  grid-template-areas: "cars slider calendar";
+  grid-template-areas: "vehicles slider calendar";
 }
 
 .header {
   background: #ebebeb;
 }
-.cars {
-  grid-area: cars;
-  .car{
-    height: 60px;
-    border-bottom: 1px solid #ccc;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-  }
+.vehicles{
+  grid-area: vehicles;
 }
+//.cars {
+//  grid-area: cars;
+//  .car{
+//    height: 60px;
+//    border-bottom: 1px solid #ccc;
+//    box-sizing: border-box;
+//    display: flex;
+//    align-items: center;
+//  }
+//}
 
 .slider {
   grid-area: slider;
@@ -184,10 +189,22 @@ export default {
   flex-direction: column;
   .hours {
     display: flex;
-    height: 100%;
     .hour {
       //border-bottom: 1px solid #ccc;
+      position: relative;
+      .line{
+        height: calc(90vh - 18px);
+        width: 1px;
+        position: absolute;
+        top: 0;
+        left: -1px;
+        background: red;
+      }
     }
+  }
+  .event-lines {
+    border-top: 1px solid #ccc;
+    min-width: 1680px;
   }
 }
 
@@ -200,7 +217,7 @@ export default {
 }
 
 .scrollable-layout {
-  display: flex;
+  display: block;
   overflow-x: auto;
   //-ms-overflow-style: none;
   //scrollbar-width: none;
@@ -208,8 +225,7 @@ export default {
   .layout-segment {
     flex: 1 0 70px;
     align-content: center;
-    border-inline-start: 1px solid #ccc;
-    border-bottom: 1px solid #ccc;
+    //border-inline-start: 1px solid #ccc;
     &:first-child {border-left: none;}
   }
 }

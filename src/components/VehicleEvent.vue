@@ -2,13 +2,13 @@
   <div
       class="event"
       :style="eventPosition">
-    {{ event.start }} -
-    {{ event.duration }}
+<!--    {{ event.start }} - -->
+<!--    {{ event.duration }}-->
   </div>
 </template>
 
 <script>
-import {parseISO, getMinutes } from "date-fns";
+import {parseISO, startOfDay, differenceInMinutes} from "date-fns";
 
 export default {
   name: "VehicleEvent",
@@ -24,19 +24,11 @@ export default {
   },
   computed: {
     positionLeft() {
-      return getMinutes(parseISO(this.event.start)) || 0
+      const parsedDate = parseISO(this.event.start)
+      return differenceInMinutes(parsedDate, startOfDay(parsedDate))
     },
     eventPosition() {
-      if (this.event.isWithinStart) {
-        return `
-        width: ${this.event.duration * this.oneMinuteSize }px;
-        left: ${this.positionLeft * this.oneMinuteSize}px;`
-      } else {
-        return `
-        width: ${this.event.duration * this.oneMinuteSize }px;
-        left: ${this.positionLeft * this.oneMinuteSize}px;`
-      }
-    }
+      return `width: ${this.event.duration * this.oneMinuteSize }px; left: ${this.positionLeft * this.oneMinuteSize}px;`}
   }
 }
 </script>

@@ -2,7 +2,7 @@
   <div class="cell" ref="itemCell">
     <template v-if="events.length">
       <VehicleEvent
-          v-for="event in processedEvents"
+          v-for="event in events"
           :event="event"
           :key="event.id"
           :oneMinuteSize="oneMinuteSize"
@@ -13,7 +13,6 @@
 
 <script>
 import VehicleEvent from "@/components/VehicleEvent.vue";
-import {getHours, parseISO} from "date-fns";
 export default {
   name: "CalendarCell",
   components: { VehicleEvent },
@@ -45,11 +44,11 @@ export default {
       const oneHourSize = this.gridSize / this.dayDuration
       return oneHourSize / 60
     },
-    processedEvents() {
-      return this.events.map((item) => {
-        return { ... item, isWithinStart: getHours(parseISO(item.start)) === this.hour }
-      })
-    }
+    // processedEvents() {
+    //   return this.events.map((item) => {
+    //     return { ... item, isWithinStart: getHours(parseISO(item.start)) === this.hour }
+    //   })
+    // }
   }
 
 }
